@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1778949451406,
+      "tag": "0000_aspiring_hedge_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778950164703,
+      "tag": "0001_thankful_odin",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779035215486,
+      "tag": "0002_lethal_raider",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779035930494,
+      "tag": "0003_overjoyed_dragon_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779039099974,
+      "tag": "0004_gorgeous_roland_deschain",
+      "breakpoints": true
+    }
+  ]
+}
