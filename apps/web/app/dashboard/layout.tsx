@@ -1,9 +1,11 @@
 import { AppSidebar } from "~/components/app-sidebar"
+import { AuthGuard } from "~/components/auth-guard"
 import { SiteHeader } from "~/components/site-header"
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
+    <AuthGuard>
     <SidebarProvider
       style={
         {
@@ -22,5 +24,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </AuthGuard>
   )
 }

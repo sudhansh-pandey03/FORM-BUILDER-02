@@ -12,9 +12,10 @@ import {
   FieldSeparator,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { trpc } from "~/trpc/client";
 import { useSignup } from "~/hooks/api/auth";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
 
 type SignupFormValues = {
   name: string;
@@ -30,7 +31,8 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
+    getValues,
+    formState: { isSubmitting, errors },
   } = useForm<SignupFormValues>({
     defaultValues: {
       name: "",
@@ -41,14 +43,16 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
   });
 
   const onSubmit: SubmitHandler<SignupFormValues> = async (values) => {
-    console.log(values);
-    const { id } = await createUserWithEmailAndPasswordAsync({
-      email: values.email,
-      fullName: values.name,
-      password: values.password,
-    });
-    console.log(`User created with ID=${id}`);
-    router.replace("/dashboard");
+    try {
+      await createUserWithEmailAndPasswordAsync({
+        email: values.email,
+        fullName: values.name,
+        password: values.password,
+      });
+      router.replace("/dashboard");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign up failed. Please try again.");
+    }
   };
 
   return (
@@ -90,18 +94,32 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
           <Input
             id="password"
             type="password"
-            {...register("password", { required: true, minLength: 8 })}
+            {...register("password", {
+              required: "Password is required",
+              minLength: { value: 8, message: "Must be at least 8 characters long." },
+            })}
           />
-          <FieldDescription>Must be at least 8 characters long.</FieldDescription>
+          {errors.password ? (
+            <p className="text-sm text-destructive">{errors.password.message}</p>
+          ) : (
+            <FieldDescription>Must be at least 8 characters long.</FieldDescription>
+          )}
         </Field>
         <Field>
           <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
           <Input
             id="confirm-password"
             type="password"
-            {...register("confirmPassword", { required: true })}
+            {...register("confirmPassword", {
+              required: "Please confirm your password",
+              validate: (value) => value === getValues("password") || "Passwords do not match",
+            })}
           />
-          <FieldDescription>Please confirm your password.</FieldDescription>
+          {errors.confirmPassword ? (
+            <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+          ) : (
+            <FieldDescription>Please confirm your password.</FieldDescription>
+          )}
         </Field>
         <Field>
           <Button type="submit" disabled={isSubmitting}>
@@ -120,7 +138,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"form">
             Sign up with GitHub
           </Button>
           <FieldDescription className="px-6 text-center">
-            Already have an account? <a href="#">Sign in</a>
+            Already have an account? <Link href="/login">Sign in</Link>
           </FieldDescription>
         </Field>
       </FieldGroup>
