@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -25,21 +25,18 @@ type FormField = {
 function FormFieldInput({
   field,
   register,
-  setValue,
-  watch,
+  control,
   errors,
 }: {
   field: FormField;
   register: ReturnType<typeof useForm>["register"];
-  setValue: ReturnType<typeof useForm>["setValue"];
-  watch: ReturnType<typeof useForm>["watch"];
+  control: ReturnType<typeof useForm>["control"];
   errors: Record<string, { message?: string }>;
 }) {
   const rules = field.isRequired ? { required: `${field.label} is required` } : {};
   const error = errors[field.labelKey];
 
   if (field.type === "YES_NO") {
-    const value = watch(field.labelKey) as string;
     return (
       <Field data-invalid={!!error}>
         <FieldLabel htmlFor={field.labelKey}>
@@ -47,20 +44,30 @@ function FormFieldInput({
           {field.isRequired && <span className="text-destructive ml-0.5">*</span>}
         </FieldLabel>
         {field.description && <FieldDescription>{field.description}</FieldDescription>}
-        <RadioGroup
-          value={value}
-          onValueChange={(val) => setValue(field.labelKey, val, { shouldValidate: true })}
-          className="flex gap-6 mt-1"
-        >
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="yes" id={`${field.labelKey}_yes`} />
-            <Label htmlFor={`${field.labelKey}_yes`}>Yes</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="no" id={`${field.labelKey}_no`} />
-            <Label htmlFor={`${field.labelKey}_no`}>No</Label>
-          </div>
-        </RadioGroup>
+        <Controller
+          name={field.labelKey}
+          control={control}
+          rules={rules}
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <RadioGroup
+              ref={ref}
+              value={(value as string | undefined) ?? ""}
+              onValueChange={onChange}
+              onBlur={onBlur}
+              aria-invalid={!!error}
+              className="flex gap-6 mt-1"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="yes" id={`${field.labelKey}_yes`} />
+                <Label htmlFor={`${field.labelKey}_yes`}>Yes</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="no" id={`${field.labelKey}_no`} />
+                <Label htmlFor={`${field.labelKey}_no`}>No</Label>
+              </div>
+            </RadioGroup>
+          )}
+        />
         {error && <FieldError>{error.message}</FieldError>}
       </Field>
     );
@@ -97,12 +104,12 @@ export default function PublicFormPage({ params }: { params: Promise<{ form_id: 
   const { form, isLoading } = useGetForm(formId);
   const { submitFormAsync } = useSubmitForm();
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm();
 
@@ -114,8 +121,17 @@ export default function PublicFormPage({ params }: { params: Promise<{ form_id: 
         formFieldId: field.id,
         value: String(data[field.labelKey]),
       }));
-    await submitFormAsync({ formId, values });
-    setSubmitted(true);
+    setSubmitError(null);
+    try {
+      await submitFormAsync({ formId, values });
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Something went wrong while submitting. Please try again."
+      );
+    }
   };
 
   if (isLoading) {
@@ -172,13 +188,18 @@ export default function PublicFormPage({ params }: { params: Promise<{ form_id: 
                   key={field.id}
                   field={field as FormField}
                   register={register}
-                  setValue={setValue}
-                  watch={watch}
+                  control={control}
                   errors={errors as Record<string, { message?: string }>}
                 />
               ))
             )}
           </FieldGroup>
+
+          {submitError && (
+            <p role="alert" className="mt-6 text-sm text-destructive">
+              {submitError}
+            </p>
+          )}
 
           {sortedFields.length > 0 && (
             <Button type="submit" className="mt-8 w-full" disabled={isSubmitting}>

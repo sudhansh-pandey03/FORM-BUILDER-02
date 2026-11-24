@@ -2,6 +2,8 @@
 
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
@@ -19,7 +21,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const { signInUserWithEmailAndPasswordAsync } = useSignIn();
   const { loginWithGoogleAsync } = useLoginWithGoogle();
   const router = useRouter();
-  const { register, handleSubmit } = useForm<LoginFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<LoginFormValues>({
     defaultValues: {
       email: "",
       password: "",
@@ -27,17 +33,28 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   });
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (values) => {
-    const { id } = await signInUserWithEmailAndPasswordAsync({
-      email: values.email,
-      password: values.password,
-    });
-    router.replace("/dashboard");
+    try {
+      await signInUserWithEmailAndPasswordAsync({
+        email: values.email,
+        password: values.password,
+      });
+      router.replace("/dashboard");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Login failed. Please try again.");
+    }
   };
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) return;
-    await loginWithGoogleAsync({ credential: credentialResponse.credential });
-    router.replace("/dashboard");
+    if (!credentialResponse.credential) {
+      toast.error("Google login failed. Please try again.");
+      return;
+    }
+    try {
+      await loginWithGoogleAsync({ credential: credentialResponse.credential });
+      router.replace("/dashboard");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Google login failed. Please try again.");
+    }
   };
 
   return (
@@ -77,15 +94,17 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                 />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Logging in..." : "Login"}
+                </Button>
                 <div className="flex justify-center">
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
-                    onError={() => console.error("Google login failed")}
+                    onError={() => toast.error("Google login failed. Please try again.")}
                   />
                 </div>
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="#">Sign up</a>
+                  Don&apos;t have an account? <Link href="/signup">Sign up</Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>

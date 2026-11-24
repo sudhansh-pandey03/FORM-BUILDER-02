@@ -94,7 +94,10 @@ export const useLoginWithGoogle = () => {
 }
 
 export const useUser = () => {
-    const { data: user, error, isFetched, isFetching, isLoading, status } = trpc.auth.getLoggedInUserInfo.useQuery()
+    const { data: user, error, isFetched, isFetching, isLoading, status } = trpc.auth.getLoggedInUserInfo.useQuery(undefined, {
+        // A logged-out user gets UNAUTHORIZED; retrying only delays the redirect to /login.
+        retry: (failureCount, err) => err?.data?.code !== "UNAUTHORIZED" && failureCount < 2,
+    })
 
     return {
         user,
